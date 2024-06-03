@@ -245,14 +245,12 @@ static bool my_transform(Expression* const expression)
 	case ExpressionType_Binary: {
 		BinaryExpression* const binary = (BinaryExpression*)expression;
 
-		bool other_result = true;
-
 		BinaryExpression* lhs = NULL;
 		BinaryExpression* rhs = NULL;
 
 		// Must be multiplication of factors
 		if (binary->operator != TokenType_Multiply)
-			return other_result;
+			return true;
 
 		lhs = (BinaryExpression*)binary->left;
 		rhs = (BinaryExpression*)binary->right;
@@ -270,26 +268,33 @@ static bool my_transform(Expression* const expression)
 			
 			binary->operator = rhs->operator;
 
-			BinaryExpression* const new_lhs = expression_binary_create(
-				TokenType_Multiply,
-				expression_copy(binary->left),
-				expression_copy(rhs->left)
-			);
+			if (binary->operator == TokenType_Plus || binary->operator == TokenType_Minus)
+			{
+				BinaryExpression* const new_lhs = expression_binary_create(
+					TokenType_Multiply,
+					expression_copy(binary->left),
+					expression_copy(rhs->left)
+				);
 
-			BinaryExpression* const new_rhs = expression_binary_create(
-				TokenType_Multiply,
-				expression_copy(binary->left),
-				expression_copy(rhs->right)
-			);
+				BinaryExpression* const new_rhs = expression_binary_create(
+					TokenType_Multiply,
+					expression_copy(binary->left),
+					expression_copy(rhs->right)
+				);
 
-			expression_destroy((Expression**)&lhs);
-			expression_destroy((Expression**)&rhs);
+				expression_destroy((Expression**)&lhs);
+				expression_destroy((Expression**)&rhs);
 
-			binary->left = (Expression*)new_lhs;
-			binary->right = (Expression*)new_rhs;
+				binary->left = (Expression*)new_lhs;
+				binary->right = (Expression*)new_rhs;
 
-			my_transform(binary->left);
-			my_transform(binary->right);
+				my_transform(binary->left);
+				my_transform(binary->right);
+			} else {
+				binary->operator = TokenType_Multiply;
+				my_transform(binary->left);
+				my_transform(binary->right);
+			}
 
 			return true;
 		}
@@ -297,27 +302,34 @@ static bool my_transform(Expression* const expression)
 		if (binary->left->type == ExpressionType_Binary) {
 			binary->operator = lhs->operator;
 
-			BinaryExpression* const new_lhs = expression_binary_create(
-				TokenType_Multiply,
-				expression_copy(lhs->left),
-				expression_copy(binary->right)
-			);
+			if (binary->operator == TokenType_Plus || binary->operator == TokenType_Minus)
+			{
+				BinaryExpression* const new_lhs = expression_binary_create(
+					TokenType_Multiply,
+					expression_copy(lhs->left),
+					expression_copy(binary->right)
+				);
 
-			BinaryExpression* const new_rhs = expression_binary_create(
-				TokenType_Multiply,
-				expression_copy(lhs->right),
-				expression_copy(binary->right)
-			);
+				BinaryExpression* const new_rhs = expression_binary_create(
+					TokenType_Multiply,
+					expression_copy(lhs->right),
+					expression_copy(binary->right)
+				);
 
-			expression_destroy((Expression**)&lhs);
-			expression_destroy((Expression**)&rhs);
+				expression_destroy((Expression**)&lhs);
+				expression_destroy((Expression**)&rhs);
 
-			binary->left = (Expression*)new_lhs;
-			binary->right = (Expression*)new_rhs;
+				binary->left = (Expression*)new_lhs;
+				binary->right = (Expression*)new_rhs;
 
-			my_transform(binary->left);
-			my_transform(binary->right);
-
+				my_transform(binary->left);
+				my_transform(binary->right);
+			} else {
+				binary->operator = TokenType_Multiply;
+				my_transform(binary->left);
+				my_transform(binary->right);
+				
+			}
 			return true;
 		}
 		
