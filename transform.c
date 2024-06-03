@@ -7,23 +7,27 @@
 #include "lexer.h"
 
 // @NOTE: Put transformer functions prototypes here
+static bool my_transform(Expression* const expression);
 static bool factor_difference_of_squares(Expression* const expression);
-static bool fold_multipliers_to_diff_of_squares(Expression* const expression);
+//static bool fold_multipliers_to_diff_of_squares(Expression* const expression);
 
 // Make deep copy of a given expression.
 static Expression* expression_copy(const Expression* const expression);
 
 // Compare two expressions, lhs and rhs and return true if two
 // expressions are identical, otherwise - false.
+/*
 static bool expression_equal(const Expression* const lhs,
                              const Expression* const rhs);
+*/
+
 
 void simplify_expression(Expression* const expression)
 {
 	assert(expression != NULL);
 
 	// @NOTE: Put simplification transformer functions here
-	fold_multipliers_to_diff_of_squares(expression);
+	my_transform(expression);
 }
 
 void expand_expression(Expression* const expression)
@@ -229,12 +233,107 @@ static bool factor_difference_of_squares(Expression* const expression)
 	return false;
 }
 
+static bool my_transform(Expression* const expression)
+{
+	assert(expression != NULL);
+
+	switch (expression->type) {
+	case ExpressionType_Unary: {
+		return true;
+	} break;
+
+	case ExpressionType_Binary: {
+		BinaryExpression* const binary = (BinaryExpression*)expression;
+
+		bool other_result = true;
+
+		BinaryExpression* lhs = NULL;
+		BinaryExpression* rhs = NULL;
+
+		// Must be multiplication of factors
+		if (binary->operator != TokenType_Multiply)
+			return other_result;
+
+		lhs = (BinaryExpression*)binary->left;
+		rhs = (BinaryExpression*)binary->right;
+
+		/*
+		printf("binary->left = ");
+		expression_print(binary->left);
+		printf("\n");
+		printf("binary->right = ");
+		expression_print(binary->right);
+		printf("\n");
+		*/
+
+		if (binary->right->type == ExpressionType_Binary) {
+			
+			binary->operator = rhs->operator;
+
+			BinaryExpression* const new_lhs = expression_binary_create(
+				TokenType_Multiply,
+				expression_copy(binary->left),
+				expression_copy(rhs->left)
+			);
+
+			BinaryExpression* const new_rhs = expression_binary_create(
+				TokenType_Multiply,
+				expression_copy(binary->left),
+				expression_copy(rhs->right)
+			);
+
+			expression_destroy((Expression**)&lhs);
+			expression_destroy((Expression**)&rhs);
+
+			binary->left = (Expression*)new_lhs;
+			binary->right = (Expression*)new_rhs;
+
+			my_transform(binary->left);
+			my_transform(binary->right);
+
+			return true;
+		}
+
+		if (binary->left->type == ExpressionType_Binary) {
+			binary->operator = lhs->operator;
+
+			BinaryExpression* const new_lhs = expression_binary_create(
+				TokenType_Multiply,
+				expression_copy(lhs->left),
+				expression_copy(binary->right)
+			);
+
+			BinaryExpression* const new_rhs = expression_binary_create(
+				TokenType_Multiply,
+				expression_copy(lhs->right),
+				expression_copy(binary->right)
+			);
+
+			expression_destroy((Expression**)&lhs);
+			expression_destroy((Expression**)&rhs);
+
+			binary->left = (Expression*)new_lhs;
+			binary->right = (Expression*)new_rhs;
+
+			my_transform(binary->left);
+			my_transform(binary->right);
+
+			return true;
+		}
+		
+	} break;
+	}
+
+	return false;
+}
+
 // Transform expression to fold multiplication of terms back to differences of
 // squares and return true, if such subtree was found, false - otherwise.
 //
 // Examples: (a - b) * (a + b) -> a^2 - b^2,
 //           (a - ((c - d) * (c + d))) * (a + ((c - d) * (c + d))) ->
 //        -> a ^ 2 * (c ^ 2 * d ^ 2) ^ 2
+/*
 static bool fold_multipliers_to_diff_of_squares(Expression* const expression)
 {
 	assert(expression != NULL);
@@ -309,7 +408,7 @@ static bool fold_multipliers_to_diff_of_squares(Expression* const expression)
 
 	return false;
 }
-
+*/
 //
 // Helper functions
 //
@@ -354,7 +453,7 @@ static Expression* expression_copy(const Expression* const expression)
 
 	return result;
 }
-
+/*
 static bool expression_equal(const Expression* const lhs,
                              const Expression* const rhs)
 {
@@ -409,4 +508,4 @@ static bool expression_equal(const Expression* const lhs,
 
 	return false;
 }
-
+*/
